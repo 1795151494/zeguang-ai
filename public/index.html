@@ -1,0 +1,1693 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>择光 AI - 你的温柔决策搭子</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#EAF6FF",
+            accent: "#FFE08A",
+            accentDark: "#FFD166",
+            textPrimary: "#1E293B",
+            textSecondary: "#64748B",
+          },
+          animation: {
+            float: "float 6s ease-in-out infinite",
+            floatSlow: "float 8s ease-in-out infinite",
+            fadeIn: "fadeIn 0.5s ease-out",
+            fadeInUp: "fadeInUp 0.6s ease-out",
+            pulseSoft: "pulseSoft 2s infinite",
+          },
+          keyframes: {
+            float: {
+              "0%, 100%": { transform: "translateY(0px)" },
+              "50%": { transform: "translateY(-10px)" },
+            },
+            fadeIn: {
+              "0%": { opacity: 0 },
+              "100%": { opacity: 1 },
+            },
+            fadeInUp: {
+              "0%": { opacity: 0, transform: "translateY(20px)" },
+              "100%": { opacity: 1, transform: "translateY(0)" },
+            },
+            pulseSoft: {
+              "0%, 100%": { opacity: 0.5 },
+              "50%": { opacity: 1 },
+            },
+          },
+        },
+      },
+    };
+  </script>
+
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .glass {
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+      }
+
+      .card-shadow {
+        box-shadow: 0 10px 40px rgba(15, 23, 42, 0.08);
+      }
+
+      .text-balance {
+        text-wrap: balance;
+      }
+    }
+  </style>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 209, 102, 0.6);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 209, 102, 0.8);
+    }
+
+    ::selection {
+      background: rgba(255, 224, 138, 0.4);
+      color: #1E293B;
+    }
+
+    .dark ::selection {
+      background: rgba(255, 209, 102, 0.3);
+      color: white;
+    }
+
+    .mode-btn {
+      padding: 0.75rem 1.25rem;
+      border-radius: 9999px;
+      background: rgba(255,255,255,0.7);
+      color: #64748B;
+      transition: all 0.3s ease;
+      outline: none;
+    }
+
+    .dark .mode-btn {
+      background: rgba(30,41,59,0.7);
+      color: #CBD5E1;
+    }
+
+    .mode-btn:hover {
+      transform: scale(1.05);
+    }
+
+    .active-mode {
+      background: #FFE08A;
+      color: #1E293B;
+      font-weight: 600;
+      box-shadow: 0 10px 20px rgba(255, 224, 138, 0.35);
+    }
+
+    .decision-card {
+      position: relative;
+      overflow: hidden;
+      padding: 36px 24px;
+      border-radius: 32px;
+      background: rgba(255,255,255,.72);
+      border: 1px solid rgba(255,255,255,.45);
+      backdrop-filter: blur(22px);
+      box-shadow: 0 10px 35px rgba(15,23,42,.08);
+      text-align: center;
+      transition: all .3s ease;
+    }
+
+    .dark .decision-card {
+      background: rgba(15,23,42,.72);
+      border-color: rgba(255,255,255,.06);
+    }
+
+    .decision-card:hover {
+      transform: translateY(-10px) scale(1.01);
+      box-shadow: 0 25px 60px rgba(15,23,42,.14);
+    }
+
+    .decision-glow {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity .5s ease;
+      filter: blur(50px);
+    }
+
+    .group:hover .decision-glow {
+      opacity: 1;
+    }
+
+    .card-title {
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .card-desc {
+      color: #64748B;
+      line-height: 1.7;
+    }
+
+    .dark .card-desc {
+      color: #CBD5E1;
+    }
+
+    .wheel-wrap {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 26px;
+    }
+
+    .wheel {
+      width: 100%;
+      height: 100%;
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 10px 25px rgba(0,0,0,.08);
+    }
+
+    .wheel-part {
+      position: absolute;
+      width: 50%;
+      height: 50%;
+    }
+
+    .wheel-part:nth-child(1) { top: 0; left: 0; }
+    .wheel-part:nth-child(2) { top: 0; right: 0; }
+    .wheel-part:nth-child(3) { bottom: 0; left: 0; }
+    .wheel-part:nth-child(4) { bottom: 0; right: 0; }
+
+    .wheel-center {
+      position: absolute;
+      inset: 36%;
+      border-radius: 999px;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 5px 15px rgba(0,0,0,.08);
+      z-index: 1;
+    }
+
+    .dark .wheel-center {
+      background: #0F172A;
+    }
+
+    .wheel-pointer {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #EF4444;
+      font-size: 22px;
+      z-index: 2;
+    }
+
+    .coin-wrap {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      perspective: 1000px;
+    }
+
+    .coin3d {
+      width: 90px;
+      height: 90px;
+      position: relative;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+
+    .coin-front,
+    .coin-back {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      font-weight: 900;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      box-shadow: inset 0 0 15px rgba(255,255,255,.5), 0 10px 25px rgba(0,0,0,.08);
+    }
+
+    .coin-front {
+      background: linear-gradient(135deg, #FFD166, #FFB703);
+    }
+
+    .coin-back {
+      background: linear-gradient(135deg, #CBD5E1, #94A3B8);
+      transform: rotateY(180deg);
+    }
+
+    .clock-wrap {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .clock-circle {
+      width: 95px;
+      height: 95px;
+      border-radius: 999px;
+      border: 8px solid #7DD3FC;
+      position: relative;
+      animation: clockPulse 2s infinite;
+    }
+
+    .clock-hand {
+      position: absolute;
+      width: 4px;
+      height: 34px;
+      background: #0F172A;
+      left: 50%;
+      top: 12px;
+      transform: translateX(-50%) rotate(0deg);
+      transform-origin: bottom center;
+      will-change: transform;
+    }
+
+    .dark .clock-hand {
+      background: white;
+    }
+
+    .clock-number {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 900;
+    }
+
+    @keyframes clockPulse {
+      0%,100% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+    }
+
+    .bubble-wrap {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 26px;
+    }
+
+    .bubble {
+      position: absolute;
+      border-radius: 24px;
+      animation: bubbleFloat 3s infinite ease-in-out;
+    }
+
+    .bubble1 {
+      width: 64px;
+      height: 46px;
+      background: #F9A8D4;
+      left: 0;
+      top: 25px;
+    }
+
+    .bubble2 {
+      width: 74px;
+      height: 54px;
+      background: #A5B4FC;
+      right: 0;
+      top: 10px;
+      animation-delay: .5s;
+    }
+
+    .bubble3 {
+      width: 54px;
+      height: 38px;
+      background: #86EFAC;
+      left: 35px;
+      bottom: 0;
+      animation-delay: 1s;
+    }
+
+    @keyframes bubbleFloat {
+      0%,100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .toast {
+      animation: toastIn .25s ease-out;
+    }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .wheel-expand-panel {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transform: translateY(-8px);
+      transition: max-height .55s ease, opacity .35s ease, transform .35s ease;
+      pointer-events: none;
+    }
+
+    .wheel-expand-panel.open {
+      max-height: 2200px;
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+  </style>
+</head>
+
+<body class="bg-primary dark:bg-slate-950 text-textPrimary dark:text-white min-h-screen overflow-x-hidden transition-colors duration-300">
+
+  <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+    <div class="absolute top-[-120px] left-[-120px] w-[420px] h-[420px] bg-sky-300/30 rounded-full blur-3xl animate-float"></div>
+    <div class="absolute bottom-[-150px] right-[-100px] w-[380px] h-[380px] bg-yellow-200/30 rounded-full blur-3xl animate-floatSlow"></div>
+  </div>
+
+  <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 bg-white/50 dark:bg-slate-900/50 glass border-b border-white/20 transition-all duration-300">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-accent flex items-center justify-center shadow-lg">
+          <i class="fa-solid fa-sun text-yellow-700" aria-hidden="true"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-xl">择光 AI</h1>
+          <p class="text-xs text-textSecondary dark:text-slate-400">每一个选择，都通向光</p>
+        </div>
+      </div>
+
+      <button
+        id="darkModeToggle"
+        class="w-11 h-11 rounded-2xl bg-white/70 dark:bg-slate-800 flex items-center justify-center hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+        aria-label="切换深色模式"
+      >
+        <i class="fa-solid fa-moon dark:hidden" aria-hidden="true"></i>
+        <i class="fa-solid fa-sun hidden dark:block text-yellow-400" aria-hidden="true"></i>
+      </button>
+    </div>
+  </nav>
+
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 pt-32 pb-20">
+    <section class="text-center mb-14 animate-fadeInUp">
+      <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 dark:bg-slate-800/60 glass mb-6 border border-white/30">
+        <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse" aria-hidden="true"></span>
+        <span class="text-sm text-textSecondary dark:text-slate-300">AI 正在温柔陪你做决定</span>
+      </div>
+
+      <h1 class="text-[clamp(2.2rem,6vw,4.5rem)] font-black leading-tight mb-6 text-balance">
+        你的温柔<br class="sm:hidden" />决策搭子 ✨
+      </h1>
+
+      <p class="max-w-xl mx-auto text-lg text-textSecondary dark:text-slate-400 leading-relaxed mb-10 text-balance">
+        不用再一个人纠结啦。<br />
+        择光会陪你分析、理解情绪，并轻轻推你一把。
+      </p>
+
+      <div class="max-w-3xl mx-auto">
+        <div class="relative group">
+          <input
+            id="decisionInput"
+            maxlength="120"
+            type="text"
+            placeholder="比如：今天吃火锅还是烤肉？"
+            class="w-full rounded-[28px] px-7 py-6 bg-white/80 dark:bg-slate-900/80 glass border border-white/40 outline-none text-lg card-shadow focus:scale-[1.01] focus:ring-4 focus:ring-yellow-200 dark:focus:ring-yellow-500/20 transition-all duration-300"
+            aria-label="输入你的决策问题"
+          />
+
+          <button
+            id="randomBtn"
+            class="absolute right-5 top-1/2 -translate-y-1/2 w-12 h-12 rounded-2xl bg-accent hover:bg-accentDark transition-all duration-300 hover:rotate-12 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+            aria-label="随机生成一个问题"
+          >
+            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <div class="flex flex-wrap justify-center gap-3 mt-6" role="group" aria-label="决策模式">
+          <button class="mode-btn active-mode" data-mode="quick">快速决策</button>
+          <button class="mode-btn" data-mode="deep">深度分析</button>
+          <button class="mode-btn" data-mode="creative">创意启发</button>
+        </div>
+
+        <button
+          id="submitBtn"
+          class="mt-8 px-10 py-5 rounded-3xl bg-accent hover:bg-accentDark text-lg font-bold shadow-xl shadow-yellow-200/50 hover:scale-105 active:scale-95 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+        >
+          帮我做决定 ✨
+        </button>
+      </div>
+    </section>
+
+    <section
+      id="thinkingSection"
+      class="hidden max-w-2xl mx-auto mb-10 animate-fadeIn"
+      aria-live="polite"
+    >
+      <div class="bg-white/70 dark:bg-slate-900/70 glass rounded-[32px] p-8 card-shadow border border-white/30">
+        <div class="flex items-center gap-4 mb-6">
+          <div class="w-14 h-14 rounded-3xl bg-accent flex items-center justify-center">
+            <i class="fa-solid fa-brain text-2xl text-yellow-700 animate-pulseSoft" aria-hidden="true"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-lg">择光正在思考...</h3>
+            <p id="thinkingText" class="text-textSecondary dark:text-slate-400">正在理解你的纠结...</p>
+          </div>
+        </div>
+
+        <div class="w-full h-3 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+          <div
+            id="thinkingBar"
+            class="h-full w-0 bg-gradient-to-r from-yellow-300 to-yellow-400 rounded-full transition-all duration-500"
+          ></div>
+        </div>
+      </div>
+    </section>
+
+    <section
+      id="resultSection"
+      class="hidden max-w-2xl mx-auto mb-14 animate-fadeInUp"
+      aria-live="polite"
+    >
+      <div class="bg-white/80 dark:bg-slate-900/80 glass rounded-[36px] p-8 border border-white/30 card-shadow">
+        <div class="flex items-start gap-5">
+          <div class="w-16 h-16 rounded-3xl bg-accent flex items-center justify-center shadow-lg shrink-0">
+            ✨
+          </div>
+
+          <div class="flex-1">
+            <p class="text-sm text-textSecondary dark:text-slate-400 mb-2">择光 AI 的建议</p>
+
+            <h2
+              id="resultTitle"
+              class="text-3xl font-black mb-5 leading-tight text-balance"
+            >
+              今天更适合吃火锅 🍲
+            </h2>
+
+            <p
+              id="resultText"
+              class="text-lg leading-relaxed text-textSecondary dark:text-slate-300 whitespace-pre-line text-balance"
+            >
+              因为热腾腾的食物会让你更放松，
+              而且你其实已经有点偏向火锅啦～
+            </p>
+
+            <div class="flex flex-wrap gap-3 mt-6" id="resultTags">
+              <div class="px-4 py-2 rounded-full bg-yellow-100 dark:bg-yellow-500/10 text-sm">情绪安慰</div>
+              <div class="px-4 py-2 rounded-full bg-sky-100 dark:bg-sky-500/10 text-sm">轻松氛围</div>
+              <div class="px-4 py-2 rounded-full bg-pink-100 dark:bg-pink-500/10 text-sm">幸福感优先</div>
+            </div>
+
+            <div class="flex flex-wrap gap-4 mt-8">
+              <button
+                id="rerollBtn"
+                class="px-5 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-slate-400/50"
+              >
+                <i class="fa-solid fa-rotate-right mr-2" aria-hidden="true"></i>
+                换个答案
+              </button>
+
+              <button
+                id="saveBtn"
+                class="px-5 py-3 rounded-2xl bg-accent hover:bg-accentDark font-semibold text-textPrimary hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+              >
+                <i class="fa-solid fa-heart mr-2" aria-hidden="true"></i>
+                收藏这次决定
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="max-w-6xl mx-auto mb-24">
+      <div class="text-center mb-12">
+        <div class="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/70 dark:bg-slate-800/70 border border-white/30 backdrop-blur-xl mb-5">
+          <i class="fa-solid fa-sparkles text-yellow-500" aria-hidden="true"></i>
+          <span class="text-sm text-slate-600 dark:text-slate-300">AI 决策小工具</span>
+        </div>
+
+        <h2 class="text-4xl font-black mb-4 text-balance">不知道怎么选？</h2>
+        <p class="text-slate-500 dark:text-slate-400 text-lg text-balance">
+          那就交给命运、直觉和一点点运气 ✨
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-7">
+        <div class="decision-card group cursor-pointer" id="wheelCard">
+          <div class="decision-glow bg-yellow-300/20"></div>
+
+          <div class="relative z-10">
+            <div class="flex items-center justify-between gap-3 mb-4">
+              <div class="text-left">
+                <h3 class="card-title mb-1">幸运转盘</h3>
+                <p class="text-sm text-textSecondary dark:text-slate-400">点击展开完整转盘</p>
+              </div>
+
+              <button
+                id="wheelToggleBtn"
+                class="px-3 py-2 rounded-full bg-yellow-100 dark:bg-yellow-500/10 text-sm font-medium"
+              >
+                展开
+              </button>
+            </div>
+
+            <div class="wheel-wrap">
+              <div class="wheel" id="wheelPreview">
+                <div class="wheel-part bg-red-300"></div>
+                <div class="wheel-part bg-blue-300"></div>
+                <div class="wheel-part bg-green-300"></div>
+                <div class="wheel-part bg-yellow-300"></div>
+              </div>
+              <div class="wheel-center">
+                <i class="fa-solid fa-star text-yellow-500" aria-hidden="true"></i>
+              </div>
+              <div class="wheel-pointer" aria-hidden="true">▼</div>
+            </div>
+
+            <p class="card-desc">转一下吧，有时候答案就在轻轻一转之间。</p>
+          </div>
+        </div>
+
+        <div class="decision-card group cursor-pointer" id="coinCard">
+          <div class="decision-glow bg-orange-300/20"></div>
+          <div class="relative z-10">
+            <div class="coin-wrap">
+              <div class="coin3d" id="coin">
+                <div class="coin-front">正</div>
+                <div class="coin-back">反</div>
+              </div>
+            </div>
+            <h3 class="card-title">抛硬币</h3>
+            <p class="card-desc">真正重要的，是你期待哪一面朝上。</p>
+          </div>
+        </div>
+
+        <div class="decision-card group cursor-pointer" id="countdownCard">
+          <div class="decision-glow bg-sky-300/20"></div>
+          <div class="relative z-10">
+            <div class="clock-wrap">
+              <div class="clock-circle">
+                <div class="clock-hand" aria-hidden="true"></div>
+                <div class="clock-number" id="countdownNumber">5</div>
+              </div>
+            </div>
+            <h3 class="card-title">倒计时决策</h3>
+            <p class="card-desc">给自己一点时间压力，你的内心会更诚实。</p>
+          </div>
+        </div>
+
+        <div class="decision-card group cursor-pointer" id="wallCard">
+          <div class="decision-glow bg-pink-300/20"></div>
+          <div class="relative z-10">
+            <div class="bubble-wrap">
+              <div class="bubble bubble1"></div>
+              <div class="bubble bubble2"></div>
+              <div class="bubble bubble3"></div>
+            </div>
+            <h3 class="card-title">匿名决策墙</h3>
+            <p class="card-desc">看看别人也在为什么事情纠结吧。</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+        id="wheelExpandSection"
+        class="wheel-expand-panel mt-8"
+      >
+        <div class="rounded-[36px] bg-white/80 dark:bg-slate-900/80 glass border border-white/30 card-shadow p-5 sm:p-7">
+          <div class="flex flex-col gap-6">
+            <div class="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <h3 class="text-2xl font-black">幸运转盘</h3>
+                <p class="text-sm text-textSecondary dark:text-slate-400 mt-1">在下面添加选项，转盘会自动更新。</p>
+              </div>
+
+              <button
+                id="wheelCollapseBtn"
+                class="px-4 py-2 rounded-full bg-yellow-100 dark:bg-yellow-500/10 text-sm font-medium"
+              >
+                收起
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)] gap-6 items-start">
+              <div class="flex flex-col items-center">
+                <div class="relative w-[280px] h-[280px] sm:w-[340px] sm:h-[340px] lg:w-[380px] lg:h-[380px]">
+                  <div
+                    class="absolute top-[-10px] left-1/2 -translate-x-1/2 z-20"
+                    style="width:0;height:0;border-left:18px solid transparent;border-right:18px solid transparent;border-top:34px solid #ef4444;"
+                  ></div>
+
+                  <canvas
+                    id="wheelCanvas"
+                    width="480"
+                    height="480"
+                    class="w-full h-full rounded-full transition-transform duration-[4500ms]"
+                  ></canvas>
+
+                  <button
+                    id="spinBtn"
+                    class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full bg-yellow-400 hover:bg-yellow-300 font-black text-xl shadow-2xl hover:scale-105 active:scale-95 transition z-10"
+                  >
+                    开始
+                  </button>
+                </div>
+
+                <div
+                  id="wheelResult"
+                  class="mt-5 text-center text-2xl font-black text-yellow-500 min-h-[40px]"
+                >
+                  等待开始...
+                </div>
+              </div>
+
+              <div class="w-full">
+                <h4 class="text-xl font-black mb-4">自定义选项</h4>
+
+                <div class="flex gap-3 mb-5">
+                  <input
+                    id="optionInput"
+                    type="text"
+                    placeholder="输入一个选项"
+                    class="flex-1 px-5 py-4 rounded-2xl bg-slate-100 dark:bg-slate-800 outline-none"
+                  />
+
+                  <button
+                    id="addOptionBtn"
+                    class="px-5 rounded-2xl bg-yellow-400 hover:bg-yellow-300 font-bold"
+                  >
+                    添加
+                  </button>
+                </div>
+
+                <div class="text-sm text-textSecondary dark:text-slate-400 mb-3">
+                  删除掉所有选项也没关系，重新添加即可。
+                </div>
+
+                <div
+                  id="optionList"
+                  class="space-y-3 max-h-[320px] overflow-y-auto pr-1"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="max-w-2xl mx-auto mb-16">
+      <div class="bg-white/70 dark:bg-slate-900/70 glass rounded-[30px] p-7 border border-white/30 card-shadow">
+        <div class="flex items-center justify-between mb-5">
+          <div class="flex items-center gap-3">
+            <i class="fa-solid fa-heart text-pink-400" aria-hidden="true"></i>
+            <h3 class="font-bold">今日小治愈</h3>
+          </div>
+
+          <button
+            id="refreshTip"
+            class="text-sm text-textSecondary hover:text-yellow-600 transition-all duration-300 focus:outline-none"
+            aria-label="换一句治愈语录"
+          >
+            换一句
+          </button>
+        </div>
+
+        <p
+          id="tipText"
+          class="text-lg leading-relaxed text-center text-textSecondary dark:text-slate-300 text-balance"
+        >
+          你不需要每次都做出正确的选择，
+          你只需要做出选择，然后让它变正确。
+        </p>
+      </div>
+    </section>
+
+    <section class="max-w-2xl mx-auto">
+      <div class="bg-white/70 dark:bg-slate-900/70 glass rounded-[30px] p-7 border border-white/30 card-shadow">
+        <div class="flex items-center gap-3 mb-6">
+          <i class="fa-solid fa-clock-rotate-left text-yellow-500" aria-hidden="true"></i>
+          <h3 class="font-bold text-lg">最近的选择</h3>
+        </div>
+
+        <div id="historyList" class="space-y-3" aria-label="决策历史记录">
+          <p class="text-textSecondary dark:text-slate-400 text-center py-4">还没有记录哦～</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="mt-20 py-10 text-center text-sm text-textSecondary dark:text-slate-500">
+    © 2026 择光 AI · 每一个选择，都通向光 ✨
+  </footer>
+
+  <div
+  id="wallModal"
+  class="fixed inset-0 z-[99999] hidden items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+>
+  <div class="w-full max-w-2xl rounded-[32px] bg-white dark:bg-slate-900 p-6 shadow-2xl">
+
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-2xl font-black">匿名决策墙 ✨</h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400">
+          看看别人也在纠结什么
+        </p>
+      </div>
+
+      <button
+        id="closeWallBtn"
+        class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800"
+      >
+        ✕
+      </button>
+    </div>
+
+    <div class="flex gap-3 mb-6">
+      <input
+        id="wallInput"
+        type="text"
+        maxlength="80"
+        placeholder="写下你的纠结..."
+        class="flex-1 px-5 py-4 rounded-2xl bg-slate-100 dark:bg-slate-800 outline-none"
+      />
+
+      <button
+        id="postWallBtn"
+        class="px-5 rounded-2xl bg-yellow-400 hover:bg-yellow-300 font-bold"
+      >
+        发布
+      </button>
+    </div>
+
+    <div
+      id="wallList"
+      class="space-y-4 max-h-[500px] overflow-y-auto"
+    ></div>
+
+  </div>
+</div>
+
+  <div id="toastContainer" class="fixed top-10 left-1/2 -translate-x-1/2 z-[100000] flex flex-col gap-3 items-center pointer-events-none"></div>
+
+  <script>
+    const debounce = (func, wait) => {
+      let timeout;
+      return function (...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func(...args), wait);
+      };
+    };
+
+    const state = {
+      darkMode: false,
+      currentMode: 'quick',
+      isThinking: false,
+      decisionHistory: [],
+      wallPosts: [
+  {
+    text: "要不要换工作",
+    reply: "也许你真正想换的，不只是工作环境。",
+    likes: 1
+  },
+  {
+    text: "今天要不要辞职？",
+    reply: "有时候想离开，本身就是答案的一部分。",
+    likes: 13
+  },
+  {
+    text: "异地恋该继续吗...",
+    reply: "真正重要的人，距离很难阻挡。",
+    likes: 32
+  },
+  {
+    text: "想换专业但怕后悔",
+    reply: "后悔很多时候，来自没试过。",
+    likes: 8
+  }
+],
+wallReplies: [
+  "你其实已经有一点偏向答案了。",
+  "真正难的不是选择，而是承担结果。",
+  "也许你真正想要的，其实已经很明确了。",
+  "很多时候，纠结说明两个选项都不错。",
+  "别急，你可以慢一点决定。",
+  "有时候答案不在理性，而在情绪。",
+  "你心里其实已经偷偷偏向其中一边了。",
+  "不用每次都做最正确的决定。"
+],
+      tips: [
+        "完美主义是选择困难的最大敌人。",
+        "没有完美的选择，只有适合当下的选择。",
+        "相信你的直觉，它比你想象的更了解你。",
+        "纠结超过五分钟，就说明两个选项都不错。",
+        "允许自己犯错，也是成长的一部分。",
+        "今天的小决定，也会带来小惊喜。",
+        "你真正害怕的，也许不是选择本身。",
+        "有时候，不选择也是一种选择。",
+        "跟着心走，即使走错了，也会看到不一样的风景。"
+      ],
+      randomQuestions: [
+        "今天吃火锅还是烤肉？",
+        "周末去看电影还是宅家？",
+        "买白色还是黑色？",
+        "喝奶茶还是咖啡？",
+        "今晚早点睡还是继续追剧？",
+        "辞职还是再坚持一下？",
+        "先工作还是先休息？",
+        "去旅行还是攒钱？",
+        "养猫还是养狗？",
+        "看书还是打游戏？"
+      ],
+      thinkingSteps: [
+  "正在理解你的问题...",
+  "正在分析你的倾向...",
+  "正在感受你的情绪...",
+  "正在生成温柔建议..."
+],
+      tagOptions: {
+  quick: [
+    ["情绪安慰", "轻松氛围", "幸福感优先"],
+    ["效率优先", "简单直接", "不纠结"],
+    ["跟随直觉", "内心倾向", "第一选择"]
+  ],
+
+  deep: [
+    ["理性分析", "利弊权衡", "长远考虑"],
+    ["风险评估", "收益最大化", "可持续"],
+    ["个人成长", "自我提升", "长期价值"]
+  ],
+
+  creative: [
+    ["创意灵感", "跳出框架", "新视角"],
+    ["冒险精神", "尝试新事物", "突破舒适区"],
+    ["独特体验", "与众不同", "个性化"]
+  ]
+}
+};
+
+    const elements = {
+      html: document.documentElement,
+      navbar: document.getElementById('navbar'),
+      darkModeToggle: document.getElementById('darkModeToggle'),
+      modeBtns: document.querySelectorAll('.mode-btn'),
+      tipText: document.getElementById('tipText'),
+      refreshTip: document.getElementById('refreshTip'),
+      randomBtn: document.getElementById('randomBtn'),
+      decisionInput: document.getElementById('decisionInput'),
+      thinkingSection: document.getElementById('thinkingSection'),
+      thinkingText: document.getElementById('thinkingText'),
+      thinkingBar: document.getElementById('thinkingBar'),
+      resultSection: document.getElementById('resultSection'),
+      resultTitle: document.getElementById('resultTitle'),
+      resultText: document.getElementById('resultText'),
+      resultTags: document.getElementById('resultTags'),
+      submitBtn: document.getElementById('submitBtn'),
+      rerollBtn: document.getElementById('rerollBtn'),
+      saveBtn: document.getElementById('saveBtn'),
+      historyList: document.getElementById('historyList'),
+      toastContainer: document.getElementById('toastContainer'),
+      wheelCard: document.getElementById('wheelCard'),
+      wheelToggleBtn: document.getElementById('wheelToggleBtn'),
+      wheelCollapseBtn: document.getElementById('wheelCollapseBtn'),
+      wheelExpandSection: document.getElementById('wheelExpandSection'),
+      wheelCanvas: document.getElementById('wheelCanvas'),
+      spinBtn: document.getElementById('spinBtn'),
+      optionInput: document.getElementById('optionInput'),
+      addOptionBtn: document.getElementById('addOptionBtn'),
+      optionList: document.getElementById('optionList'),
+      wheelResult: document.getElementById('wheelResult'),
+      coinCard: document.getElementById('coinCard'),
+      countdownCard: document.getElementById('countdownCard'),
+      wallCard: document.getElementById('wallCard'),
+      countdownNumber: document.getElementById('countdownNumber'),
+
+wallModal: document.getElementById('wallModal'),
+closeWallBtn: document.getElementById('closeWallBtn'),
+wallInput: document.getElementById('wallInput'),
+postWallBtn: document.getElementById('postWallBtn'),
+wallList: document.getElementById('wallList')
+    };
+
+function escapeHTML(str) {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+    function showToast(text) {
+      const toast = document.createElement("div");
+      toast.className = "toast px-6 py-4 rounded-2xl bg-slate-900/95 dark:bg-slate-100 dark:text-slate-900 text-white shadow-2xl backdrop-blur-md";
+      toast.textContent = text;
+      elements.toastContainer.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = 0;
+        toast.style.transform = "translateY(-10px)";
+        toast.style.transition = "all .3s ease";
+        setTimeout(() => toast.remove(), 300);
+      }, 2500);
+    }
+
+    function initDarkMode() {
+      const saved = localStorage.getItem("darkMode");
+      state.darkMode = saved === "true" || (!saved && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      if (state.darkMode) elements.html.classList.add("dark");
+
+      elements.darkModeToggle.addEventListener("click", () => {
+        state.darkMode = !state.darkMode;
+        elements.html.classList.toggle("dark", state.darkMode);
+        localStorage.setItem("darkMode", state.darkMode);
+      });
+    }
+
+    function initNavbarScroll() {
+      window.addEventListener('scroll', debounce(() => {
+        if (window.scrollY > 10) {
+          elements.navbar.classList.add("shadow-xl");
+        } else {
+          elements.navbar.classList.remove("shadow-xl");
+        }
+      }, 50));
+    }
+
+    function initModeButtons() {
+      elements.modeBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+          elements.modeBtns.forEach(b => b.classList.remove("active-mode"));
+          btn.classList.add("active-mode");
+          state.currentMode = btn.dataset.mode;
+        });
+      });
+    }
+
+    function initTips() {
+      elements.refreshTip.addEventListener("click", () => {
+        const current = elements.tipText.textContent.trim();
+        const filtered = state.tips.filter(t => t !== current);
+        const random = filtered[Math.floor(Math.random() * filtered.length)];
+        elements.tipText.style.opacity = 0;
+        setTimeout(() => {
+          elements.tipText.textContent = random;
+          elements.tipText.style.opacity = 1;
+        }, 200);
+      });
+    }
+
+    function initRandomQuestion() {
+      elements.randomBtn.addEventListener("click", () => {
+        const random = state.randomQuestions[Math.floor(Math.random() * state.randomQuestions.length)];
+        elements.decisionInput.value = random;
+        elements.decisionInput.focus();
+      });
+    }
+
+    function parseDecision(text) {
+      if (text.includes("还是")) {
+        return text.replace(/[？?]/g, "").split("还是").map(s => s.trim()).filter(Boolean);
+      }
+      return null;
+    }
+
+    async function generateAIResult(question) {
+
+  const res = await fetch('/api/decision', {
+
+    method: 'POST',
+
+    headers: {
+      'Content-Type': 'application/json'
+    },
+
+    body: JSON.stringify({
+      question,
+      mode: state.currentMode
+    })
+
+  });
+
+  if (!res.ok) {
+    throw new Error('AI failed');
+  }
+
+  return await res.json();
+}
+
+    function saveHistory(text) {
+      state.decisionHistory.unshift({
+        text,
+        time: new Date().toLocaleDateString(),
+      });
+
+      state.decisionHistory = state.decisionHistory.slice(0, 5);
+      localStorage.setItem("decisionHistory", JSON.stringify(state.decisionHistory));
+      renderHistory();
+    }
+
+    function renderHistory() {
+      elements.historyList.innerHTML = "";
+
+      if (state.decisionHistory.length === 0) {
+        elements.historyList.innerHTML = `<p class="text-textSecondary dark:text-slate-400 text-center py-4">还没有记录哦～</p>`;
+        return;
+      }
+
+      state.decisionHistory.forEach((item) => {
+        const div = document.createElement("div");
+        div.className = "p-4 rounded-2xl bg-white/60 dark:bg-slate-800/60 border border-white/20";
+        div.innerHTML = `
+          <div class="flex justify-between gap-4">
+            <p class="truncate">${item.text}</p>
+            <span class="text-sm text-textSecondary whitespace-nowrap">${item.time}</span>
+          </div>
+        `;
+        elements.historyList.appendChild(div);
+      });
+    }
+
+    function initHistory() {
+      const saved = localStorage.getItem("decisionHistory");
+      if (saved) {
+        try {
+          state.decisionHistory = JSON.parse(saved) || [];
+        } catch {
+          state.decisionHistory = [];
+        }
+      }
+      renderHistory();
+    }
+
+    async function typeText(element, text) {
+
+  element.textContent = "";
+
+  for (let i = 0; i < text.length; i++) {
+
+    element.textContent += text[i];
+
+    await new Promise(resolve =>
+      setTimeout(resolve, 20)
+    );
+
+  }
+
+}
+
+
+async function handleSubmit() {
+  const value = elements.decisionInput.value.trim();
+
+  if (!value) {
+    showToast("先告诉我你在纠结什么呀～");
+    return;
+  }
+
+  if (state.isThinking) return;
+
+  state.isThinking = true;
+
+  elements.resultSection.classList.add("hidden");
+  elements.thinkingSection.classList.remove("hidden");
+
+  elements.thinkingBar.style.width = "0%";
+  elements.thinkingText.textContent = state.thinkingSteps[0];
+
+  let thinkingTimer;
+
+  try {
+    let progress = 0;
+
+    thinkingTimer = setInterval(() => {
+      progress += Math.random() * 10 + 5; // 每次涨一点，不要太死板
+
+      if (progress > 90) {
+        progress = 90; // 先卡住，不要太快到 100
+      }
+
+      elements.thinkingBar.style.width = progress + "%";
+
+      const stepIndex = Math.min(
+        Math.floor(progress / 20),
+        state.thinkingSteps.length - 1
+      );
+
+      elements.thinkingText.textContent = state.thinkingSteps[stepIndex];
+    }, 450);
+
+    // 强制至少思考 2.2 秒，避免 AI 太快导致“秒完成”
+    const [result] = await Promise.all([
+      generateAIResult(value),
+      new Promise(resolve => setTimeout(resolve, 2200))
+    ]);
+
+    clearInterval(thinkingTimer);
+
+    elements.thinkingBar.style.width = "100%";
+    elements.thinkingText.textContent = "分析完成 ✨";
+
+    await new Promise(resolve => setTimeout(resolve, 400));
+
+    elements.resultTitle.textContent = result.title || "我觉得你已经知道答案了 ✨";
+
+    await typeText(
+      elements.resultText,
+      result.text || "很多时候，你已经有了答案，只是在等一个温柔的确认。"
+    );
+
+    const tags = Array.isArray(result.tags) && result.tags.length > 0
+      ? result.tags
+      : ["温柔提醒", "情绪安抚", "跟随直觉"];
+
+    elements.resultTags.innerHTML = tags
+      .map(tag => `
+        <div class="px-4 py-2 rounded-full bg-yellow-100 dark:bg-yellow-500/10 text-sm">
+          ${tag}
+        </div>
+      `)
+      .join("");
+
+    elements.resultSection.classList.remove("hidden");
+    saveHistory(value);
+
+  } catch (err) {
+    console.error(err);
+    if (thinkingTimer) clearInterval(thinkingTimer);
+    showToast("AI 开小差了，再试试吧～");
+    elements.resultTitle.textContent =
+  "有时候，你已经知道答案了 ✨";
+
+elements.resultText.textContent =
+  "其实真正让你纠结的，不一定是选择本身，而是害怕结果。\n\n先相信自己的第一直觉吧。";
+
+elements.resultSection.classList.remove("hidden");
+  } finally {
+    state.isThinking = false;
+    elements.thinkingSection.classList.add("hidden");
+  }
+}
+
+
+async function handleReroll() {
+
+  const value = elements.decisionInput.value.trim();
+
+  if (!value) {
+    showToast("先输入一个问题再换答案哦～");
+    return;
+  }
+
+  if (state.isThinking) return;
+
+  showToast("正在重新思考 ✨");
+
+  await handleSubmit();
+
+}
+    
+
+    function handleSave() {
+      showToast("已经帮你收藏这次决定啦 ❤️");
+    }
+
+    function initDecision() {
+      elements.submitBtn.addEventListener("click", handleSubmit);
+      elements.decisionInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") handleSubmit();
+      });
+      elements.rerollBtn.addEventListener("click", handleReroll);
+      elements.saveBtn.addEventListener("click", handleSave);
+    }
+
+    function initWheelEmbed() {
+      const wheelColors = [
+        "#FF6B81",
+        "#70A1FF",
+        "#7BED9F",
+        "#FFA502",
+        "#A29BFE",
+        "#FFD166",
+        "#00C2A8",
+        "#FF7F50"
+      ];
+
+      let wheelOptions = [
+        { id: crypto?.randomUUID?.() || String(Date.now() + Math.random()), text: "吃火锅" },
+        { id: crypto?.randomUUID?.() || String(Date.now() + Math.random()), text: "吃烧烤" },
+        { id: crypto?.randomUUID?.() || String(Date.now() + Math.random()), text: "吃炸鸡" },
+        { id: crypto?.randomUUID?.() || String(Date.now() + Math.random()), text: "吃面条" }
+      ];
+
+      let wheelRotation = 0;
+      let wheelSpinning = false;
+      let wheelOpen = false;
+
+      function setWheelOpen(open) {
+        wheelOpen = open;
+        elements.wheelExpandSection.classList.toggle("open", open);
+        elements.wheelToggleBtn.textContent = open ? "收起" : "展开";
+        elements.wheelCollapseBtn.textContent = "收起";
+
+        if (open) {
+          renderWheelOptions();
+          drawWheel();
+          requestAnimationFrame(() => {
+            elements.wheelExpandSection.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        }
+      }
+
+      function renderWheelOptions() {
+        elements.optionList.innerHTML = "";
+
+        if (wheelOptions.length === 0) {
+          const empty = document.createElement("div");
+          empty.className = "p-4 rounded-2xl bg-slate-100 dark:bg-slate-800 text-textSecondary dark:text-slate-400 text-sm";
+          empty.textContent = "还没有选项，先添加几个吧。";
+          elements.optionList.appendChild(empty);
+          drawWheel();
+          return;
+        }
+
+        wheelOptions.forEach((item) => {
+          const div = document.createElement("div");
+          div.className = "flex items-center justify-between gap-3 p-4 rounded-2xl bg-slate-100 dark:bg-slate-800";
+          div.dataset.id = item.id;
+          div.innerHTML = `
+            <span class="truncate">${item.text}</span>
+            <button class="px-3 py-2 rounded-xl bg-red-400 text-white shrink-0">删除</button>
+          `;
+
+          div.querySelector("button").addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (wheelSpinning) return;
+            wheelOptions = wheelOptions.filter(x => x.id !== item.id);
+            renderWheelOptions();
+          });
+
+          elements.optionList.appendChild(div);
+        });
+
+        drawWheel();
+      }
+
+      function drawWheel() {
+        const canvas = elements.wheelCanvas;
+        const ctx = canvas.getContext("2d");
+        const count = wheelOptions.length;
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        const r = 210;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (count === 0) {
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.fillStyle = "#E5E7EB";
+          ctx.fill();
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 4;
+          ctx.stroke();
+
+          ctx.fillStyle = "#64748B";
+          ctx.font = "bold 24px Microsoft YaHei";
+          ctx.textAlign = "center";
+          ctx.fillText("请先添加选项", cx, cy);
+          return;
+        }
+
+        const angle = (Math.PI * 2) / count;
+
+        for (let i = 0; i < count; i++) {
+          const start = i * angle;
+          const end = start + angle;
+
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.arc(cx, cy, r, start, end);
+          ctx.closePath();
+
+          ctx.fillStyle = wheelColors[i % wheelColors.length];
+          ctx.fill();
+          ctx.strokeStyle = "#fff";
+          ctx.lineWidth = 4;
+          ctx.stroke();
+
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(start + angle / 2);
+          ctx.textAlign = "right";
+          ctx.fillStyle = "#fff";
+          ctx.font = "bold 22px Microsoft YaHei";
+
+          let text = wheelOptions[i].text;
+          if (text.length > 8) text = text.slice(0, 8) + "...";
+
+          ctx.fillText(text, r - 24, 10);
+          ctx.restore();
+        }
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, 72, 0, Math.PI * 2);
+        ctx.fillStyle = "#FFF8E7";
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "#fff";
+        ctx.stroke();
+
+        ctx.fillStyle = "#1E293B";
+        ctx.font = "bold 28px Microsoft YaHei";
+        ctx.textAlign = "center";
+        ctx.fillText("开始", cx, cy + 10);
+      }
+
+      elements.wheelCard.addEventListener("click", () => {
+        setWheelOpen(!wheelOpen);
+      });
+
+      elements.wheelToggleBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        setWheelOpen(!wheelOpen);
+      });
+
+      elements.wheelCollapseBtn.addEventListener("click", () => {
+        setWheelOpen(false);
+      });
+
+      elements.addOptionBtn.addEventListener("click", () => {
+        const value = elements.optionInput.value.trim();
+        if (!value) {
+          showToast("请输入选项");
+          return;
+        }
+
+        wheelOptions.push({
+          id: crypto?.randomUUID?.() || String(Date.now() + Math.random()),
+          text: value
+        });
+
+        elements.optionInput.value = "";
+        renderWheelOptions();
+      });
+
+      elements.optionInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          elements.addOptionBtn.click();
+        }
+      });
+
+      elements.spinBtn.addEventListener("click", () => {
+        if (wheelSpinning) return;
+        if (wheelOptions.length < 2) {
+          showToast("至少需要两个选项");
+          return;
+        }
+
+        wheelSpinning = true;
+        elements.spinBtn.disabled = true;
+        elements.wheelResult.textContent = "转盘旋转中...";
+
+        const count = wheelOptions.length;
+        const anglePer = 360 / count;
+        const selectedIndex = Math.floor(Math.random() * count);
+        const targetAngle = 270 - (selectedIndex * anglePer + anglePer / 2);
+        const extraRounds = 360 * 6;
+
+        wheelRotation = wheelRotation + extraRounds + targetAngle - (wheelRotation % 360);
+        elements.wheelCanvas.style.transition = "transform 4500ms cubic-bezier(0.17, 0.67, 0.12, 0.99)";
+        elements.wheelCanvas.style.transform = `rotate(${wheelRotation}deg)`;
+
+        setTimeout(() => {
+          elements.wheelResult.textContent = `✨ ${wheelOptions[selectedIndex].text} ✨`;
+          showToast(`命运选择了：${wheelOptions[selectedIndex].text} ✨`);
+          wheelSpinning = false;
+          elements.spinBtn.disabled = false;
+        }, 4500);
+      });
+
+      renderWheelOptions();
+      drawWheel();
+    }
+
+    function initToolCards() {
+      let coinAnimating = false;
+      let coinRotation = 0;
+
+      elements.coinCard.addEventListener("click", () => {
+        if (coinAnimating) return;
+        coinAnimating = true;
+
+        const coin = document.getElementById("coin");
+        const isHeads = Math.random() > 0.5;
+        const desiredFace = isHeads ? 0 : 180;
+        const currentFaceAngle = ((coinRotation % 360) + 360) % 360;
+        const deltaToDesired = (desiredFace - currentFaceAngle + 360) % 360;
+
+        coinRotation += 360 * 6 + deltaToDesired;
+        coin.style.transition = "transform 2s cubic-bezier(0.17, 0.67, 0.12, 0.99)";
+        coin.style.transform = `rotateY(${coinRotation}deg)`;
+
+        showToast("硬币抛起来啦 ✨");
+
+        setTimeout(() => {
+          showToast(isHeads ? "结果是：正面！" : "结果是：反面！");
+          coinAnimating = false;
+        }, 2000);
+      });
+
+      let countdownRunning = false;
+
+      elements.countdownCard.addEventListener("click", () => {
+        if (countdownRunning) return;
+        countdownRunning = true;
+
+        const hand = document.querySelector(".clock-hand");
+        let count = 5;
+        let degree = 0;
+
+        elements.countdownNumber.textContent = count;
+        showToast("倒计时开始！");
+
+        hand.style.transition = "none";
+        hand.style.transform = "translateX(-50%) rotate(0deg)";
+        void hand.offsetWidth;
+        hand.style.transition = "transform 1s linear";
+
+        degree = 72;
+        hand.style.transform = `translateX(-50%) rotate(${degree}deg)`;
+
+        const timer = setInterval(() => {
+          count -= 1;
+
+          if (count <= 0) {
+            elements.countdownNumber.textContent = 0;
+            clearInterval(timer);
+            showToast("时间到！相信第一直觉 ✨");
+
+            setTimeout(() => {
+              elements.countdownNumber.textContent = 5;
+              hand.style.transition = "none";
+              hand.style.transform = "translateX(-50%) rotate(0deg)";
+              countdownRunning = false;
+            }, 1200);
+
+            return;
+          }
+
+          elements.countdownNumber.textContent = count;
+          degree += 72;
+          hand.style.transform = `translateX(-50%) rotate(${degree}deg)`;
+        }, 1000);
+      });
+
+    }
+
+    function saveWallPosts() {
+  localStorage.setItem(
+    "wallPosts",
+    JSON.stringify(state.wallPosts)
+  );
+}
+
+    function renderWallPosts() {
+
+  elements.wallList.innerHTML = "";
+
+  if (state.wallPosts.length === 0) {
+
+    elements.wallList.innerHTML = `
+      <div class="text-center text-slate-400 py-10">
+        还没有人发帖哦～
+      </div>
+    `;
+
+    return;
+  }
+
+  state.wallPosts.forEach((post, index) => {
+
+    const div = document.createElement("div");
+
+    div.className =
+      "p-5 rounded-3xl bg-slate-100 dark:bg-slate-800";
+
+    div.innerHTML = `
+      <div class="flex items-start justify-between gap-4">
+
+        <div class="flex-1">
+          <p class="text-lg leading-relaxed">
+            ${escapeHTML(post.text)}
+          </p>
+
+          <div class="mt-3 text-sm text-slate-500">
+            AI：${post.reply}
+          </div>
+        </div>
+
+        <button
+          class="like-btn px-4 py-2 rounded-2xl bg-pink-100 dark:bg-pink-500/10"
+          data-index="${index}"
+        >
+          ❤️ ${post.likes}
+        </button>
+
+      </div>
+    `;
+
+    const likeBtn = div.querySelector(".like-btn");
+
+    likeBtn.addEventListener("click", () => {
+
+      state.wallPosts[index].likes++;
+
+      saveWallPosts();
+
+      renderWallPosts();
+
+    });
+
+    elements.wallList.appendChild(div);
+
+  });
+}
+
+function initWall() {
+
+  const saved = localStorage.getItem("wallPosts");
+
+if (saved) {
+  try {
+    state.wallPosts = JSON.parse(saved);
+  } catch {
+    state.wallPosts = [];
+  }
+}
+
+  elements.wallCard.addEventListener("click", () => {
+
+    elements.wallModal.classList.remove("hidden");
+
+    elements.wallModal.classList.add("flex");
+
+    renderWallPosts();
+
+  });
+
+  elements.closeWallBtn.addEventListener("click", () => {
+
+    elements.wallModal.classList.add("hidden");
+
+    elements.wallModal.classList.remove("flex");
+
+  });
+
+  elements.postWallBtn.addEventListener("click", () => {
+
+    const value = elements.wallInput.value.trim();
+
+    if (!value) {
+
+      showToast("先写点内容吧～");
+
+      return;
+    }
+
+    const randomReply =
+  state.wallReplies[
+    Math.floor(
+      Math.random() * state.wallReplies.length
+    )
+  ];
+
+state.wallPosts.unshift({
+  text: value,
+  reply: randomReply,
+  likes: 0
+});
+    elements.wallInput.value = "";
+
+    renderWallPosts();
+
+    saveWallPosts();
+
+    showToast("发布成功 ✨");
+
+  });
+
+}
+
+    function init() {
+      initDarkMode();
+      initNavbarScroll();
+      initModeButtons();
+      initTips();
+      initRandomQuestion();
+      initDecision();
+      initHistory();
+      initToolCards();
+      initWheelEmbed();
+      initWall();
+    }
+
+    document.addEventListener("DOMContentLoaded", init);
+  </script>
+</body>
+</html>
