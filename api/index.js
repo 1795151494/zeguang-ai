@@ -3,7 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import OpenAI from "openai";
 import crypto from "crypto";
-import rateLimit from "express-rate-limit"; // ⚠️ 别忘了安装这个依赖
+import rateLimit from "express-rate-limit"; 
 
 dotenv.config();
 
@@ -87,26 +87,26 @@ app.post("/api/decision", async (req, res) => {
       temperature: 0.8
     });
 
-    const aiText = response.choices?.[0]?.message?.content || "{}";
-    let text = response.choices?.[0]?.message?.content || "{}";
+    const rawText = response.choices?.[0]?.message?.content || "{}";
 
-// 清理 markdown json
-text = text
-  .replace(/```json/g, "")
+const cleanedText = rawText
+  .replace(/```json/gi, "")
   .replace(/```/g, "")
   .trim();
 
 let result;
 
 try {
-  result = JSON.parse(aiText);
+  result = JSON.parse(cleanedText);
 } catch {
   result = {
     title: "我觉得你已经有答案了 ✨",
-    text: aiText,
-    tags: ["温柔建议"]
+    text: cleanedText,
+    tags: ["温柔建议"],
   };
 }
+
+
     res.json(result);
   } catch (err) {
     console.error("AI 接口错误:", err);

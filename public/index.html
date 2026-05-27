@@ -374,6 +374,9 @@
       from { opacity: 0; transform: translateY(-10px); }
       to { opacity: 1; transform: translateY(0); }
     }
+    
+  
+
 
     .wheel-expand-panel {
       max-height: 0;
@@ -840,28 +843,7 @@
       currentMode: 'quick',
       isThinking: false,
       decisionHistory: [],
-      wallPosts: [
-  {
-    text: "要不要换工作",
-    reply: "也许你真正想换的，不只是工作环境。",
-    likes: 1
-  },
-  {
-    text: "今天要不要辞职？",
-    reply: "有时候想离开，本身就是答案的一部分。",
-    likes: 13
-  },
-  {
-    text: "异地恋该继续吗...",
-    reply: "真正重要的人，距离很难阻挡。",
-    likes: 32
-  },
-  {
-    text: "想换专业但怕后悔",
-    reply: "后悔很多时候，来自没试过。",
-    likes: 8
-  }
-],
+      wallPosts: [],
 wallReplies: [
   "你其实已经有一点偏向答案了。",
   "真正难的不是选择，而是承担结果。",
@@ -1101,6 +1083,73 @@ function escapeHTML(str) {
         elements.historyList.appendChild(div);
       });
     }
+    
+    async function fetchWallPosts() {
+
+  try {
+
+    const res = await fetch('/api/wall/posts');
+
+    const data = await res.json();
+
+    state.wallPosts = data;
+
+    renderWallPosts();
+
+  } catch (e) {
+
+    console.error(e);
+
+    showToast('加载失败');
+
+  }
+}
+
+async function postToWall(text) {
+
+  try {
+
+    await fetch('/api/wall/posts', {
+      method: 'POST',
+
+      headers: {
+        'Content-Type': 'application/json'
+      },
+
+      body: JSON.stringify({
+        content: text
+      })
+    });
+
+    await fetchWallPosts();
+
+  } catch (e) {
+
+    console.error(e);
+
+    showToast('发布失败');
+
+  }
+}
+
+async function likeWallPost(id) {
+
+  try {
+
+    await fetch(`/api/wall/posts/${id}/like`, {
+      method: 'POST'
+    });
+
+    await fetchWallPosts();
+
+  } catch (e) {
+
+    console.error(e);
+
+    showToast('点赞失败');
+
+  }
+}
 
     function initHistory() {
       const saved = localStorage.getItem("decisionHistory");
@@ -1537,14 +1586,42 @@ async function handleReroll() {
         }, 1000);
       });
 
+elements.wallCard.addEventListener("click", () => {
+
+  elements.wallModal.classList.remove("hidden");
+
+  elements.wallModal.classList.add("flex");
+
+});
+
+elements.closeWallBtn.addEventListener("click", () => {
+
+  elements.wallModal.classList.add("hidden");
+
+  elements.wallModal.classList.remove("flex");
+
+});
+
+elements.postWallBtn.addEventListener("click", async () => {
+
+  const text = elements.wallInput.value.trim();
+
+  if (!text) {
+    showToast("写点内容再发布呀～");
+    return;
+  }
+
+  await postToWall(text);
+
+  elements.wallInput.value = "";
+
+  showToast("发布成功 ✨");
+
+});
+
     }
 
-    function saveWallPosts() {
-  localStorage.setItem(
-    "wallPosts",
-    JSON.stringify(state.wallPosts)
-  );
-}
+    
 
     function renderWallPosts() {
 
@@ -1593,84 +1670,19 @@ async function handleReroll() {
 
     const likeBtn = div.querySelector(".like-btn");
 
-    likeBtn.addEventListener("click", () => {
+    likeBtn.addEventListener("click", async () => {
 
-      state.wallPosts[index].likes++;
+  await likeWallPost(post.id);
 
-      saveWallPosts();
-
-      renderWallPosts();
-
-    });
-
+});
+    
     elements.wallList.appendChild(div);
 
   });
 }
 
-function initWall() {
-
-  const saved = localStorage.getItem("wallPosts");
-
-if (saved) {
-  try {
-    state.wallPosts = JSON.parse(saved);
-  } catch {
-    state.wallPosts = [];
-  }
-}
-
-  elements.wallCard.addEventListener("click", () => {
-
-    elements.wallModal.classList.remove("hidden");
-
-    elements.wallModal.classList.add("flex");
-
-    renderWallPosts();
-
-  });
-
-  elements.closeWallBtn.addEventListener("click", () => {
-
-    elements.wallModal.classList.add("hidden");
-
-    elements.wallModal.classList.remove("flex");
-
-  });
-
-  elements.postWallBtn.addEventListener("click", () => {
-
-    const value = elements.wallInput.value.trim();
-
-    if (!value) {
-
-      showToast("先写点内容吧～");
-
-      return;
-    }
-
-    const randomReply =
-  state.wallReplies[
-    Math.floor(
-      Math.random() * state.wallReplies.length
-    )
-  ];
-
-state.wallPosts.unshift({
-  text: value,
-  reply: randomReply,
-  likes: 0
-});
-    elements.wallInput.value = "";
-
-    renderWallPosts();
-
-    saveWallPosts();
-
-    showToast("发布成功 ✨");
-
-  });
-
+async function initWall() {
+  await fetchWallPosts();
 }
 
     function init() {
