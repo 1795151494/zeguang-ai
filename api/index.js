@@ -3,17 +3,19 @@ import cors from "cors";
 import dotenv from "dotenv";
 import OpenAI from "openai";
 import crypto from "crypto";
-import rateLimit from "express-rate-limit"; 
+import rateLimit from "express-rate-limit";
 
 dotenv.config();
 
 const app = express();
 
-// 允许跨域
+// =========================
+// 中间件
+// =========================
 app.use(cors());
 app.use(express.json());
 
-// 限流中间件（仅作用于 /api/decision）
+// 限流
 const limiter = rateLimit({
   windowMs: 60 * 1000,
   max: 20,
@@ -21,137 +23,281 @@ const limiter = rateLimit({
     error: "请求太频繁啦，休息一下再试试 ✨"
   }
 });
+
 app.use("/api/decision", limiter);
 
-// 初始化 OpenAI 客户端（DashScope 兼容模式）
+// =========================
+// OpenAI / 通义千问
+// =========================
 const client = new OpenAI({
   apiKey: process.env.DASHSCOPE_API_KEY,
   baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
   timeout: 60000,
 });
 
-// ---------- 数据存储（⚠️ 临时内存存储，重启/冷启动会丢失） ----------
-// 由于 Vercel Serverless 函数无法持久写入本地文件，
-// 这里改用内存数组存储「告白墙」数据。
-// 若需要永久存储，请改用 Supabase / MongoDB Atlas / Upstash Redis 等免费云数据库。
+// =========================
+// 临时内存数据库
+// =========================
 let wallPosts = [];
 
-// 辅助函数：读取所有帖子
+// =========================
+// 工具函数
+// =========================
 function readWall() {
   return wallPosts;
 }
 
-// 辅助函数：保存帖子（直接修改内存数组）
 function saveWall(posts) {
   wallPosts = posts;
 }
 
-// ---------- API 路由 ----------
+// =========================
+// AI 决策接口
+// =========================
 app.post("/api/decision", async (req, res) => {
   try {
     const { question, mode } = req.body;
+
     if (!question) {
-      return res.status(400).json({ error: "question required" });
+      return res.status(400).json({
+        error: "question required"
+      });
     }
 
-    const response = await client.chat.completions.create({
+    let modePrompt = "";
+
+    if (mode === "quick") {
+      modePrompt = `
+你要快速帮用户做决定。
+直接给答案。
+不要分析太多。
+语气轻松温柔。
+`;
+    }
+
+    if (mode === "deep") {
+      modePrompt = `
+你要更认真分析。
+帮助用户权衡利弊。
+但仍然保持温柔陪伴感。
+`;
+    }
+
+    if (mode === "creative") {
+      modePrompt = `
+你要更有创意。
+回答可以有灵感感、浪漫感、脑洞感。
+`;
+    }
+
+    const completion = await client.chat.completions.create({
       model: "qwen-turbo",
+
       messages: [
         {
           role: "system",
           content: `
 你是“择光 AI”。
 
-你是一个温柔、有陪伴感、不说教的 AI 决策助手，做出决策，不给折中答案。
+你是一个温柔、有陪伴感、不说教的 AI 决策助手。
+
+你必须真正帮用户做决定。
+
+不要总说：
+“你已经有答案了”
+“其实你心里知道”
+
+不要敷衍。
+
+不要给模棱两可答案。
+
+${modePrompt}
 
 要求：
-1. 回答自然
-2. 不机械
-3. 有情绪价值
-4. 不要太长
-5. 输出 JSON
 
-格式：
+1. 回答自然
+2. 有情绪价值
+3. 不机械
+4. 不说教
+5. 不要太长
+6. 标题有吸引力
+7. 一定返回 JSON
+8. 不要输出 markdown
+9. 不要输出代码块
+
+JSON 格式：
+
 {
-  "title": "一句标题",
+  "title": "标题",
   "text": "详细建议",
-  "tags": ["标签1", "标签2", "标签3"]
+  "tags": ["标签1","标签2","标签3"]
 }
-          `
+`
         },
         {
           role: "user",
-          content: `模式：${mode}\n用户问题：\n${question}`
+          content: `
+用户问题：
+${question}
+`
         }
       ],
-      temperature: 0.8
+
+      temperature: 0.9,
     });
 
-    const rawText = response.choices?.[0]?.message?.content || "{}";
+    const raw = completion.choices[0].message.content;
 
-const cleanedText = rawText
-  .replace(/```json/gi, "")
-  .replace(/```/g, "")
-  .trim();
+    let result;
 
-let result;
-
-try {
-  result = JSON.parse(cleanedText);
-} catch {
-  result = {
-    title: "我觉得你已经有答案了 ✨",
-    text: cleanedText,
-    tags: ["温柔建议"],
-  };
-}
-
+    try {
+      result = JSON.parse(raw);
+    } catch {
+      result = {
+        title: "我替你选好了 ✨",
+        text: raw,
+        tags: ["AI建议", "温柔决策", "陪伴感"]
+      };
+    }
 
     res.json(result);
+
   } catch (err) {
     console.error("AI 接口错误:", err);
-    res.status(500).json({ error: err.message || "AI failed" });
+
+    res.status(500).json({
+      error: err.message || "AI failed"
+    });
   }
 });
 
+// =========================
+// 获取告白墙
+// =========================
 app.get("/api/wall/posts", (req, res) => {
+
   const posts = readWall();
-  // 按时间倒序
+
   posts.sort((a, b) => b.createdAt - a.createdAt);
-  res.json(posts);
+
+  // ⚠️ 这里必须转换格式
+  // 因为前端 renderWallPosts 用的是:
+  // post.text
+  // post.reply
+
+  const formatted = posts.map(post => ({
+    id: post.id,
+    text: post.content,
+    reply: post.reply,
+    likes: post.likes,
+    createdAt: post.createdAt
+  }));
+
+  res.json(formatted);
 });
 
-app.post("/api/wall/posts", (req, res) => {
-  const { content, mode } = req.body;
-  if (!content) {
-    return res.status(400).json({ error: "content required" });
+// =========================
+// 发布告白墙
+// =========================
+app.post("/api/wall/posts", async (req, res) => {
+
+  try {
+
+    const { content } = req.body;
+
+    if (!content) {
+      return res.status(400).json({
+        error: "content required"
+      });
+    }
+
+    // AI 回复
+    const completion = await client.chat.completions.create({
+      model: "qwen-turbo",
+
+      messages: [
+        {
+          role: "system",
+          content: `
+你是“择光 AI”。
+
+用户会发一句纠结的话。
+
+你要像温柔朋友一样回复一句短句。
+
+要求：
+
+1. 不超过40字
+2. 温柔
+3. 有陪伴感
+4. 不鸡汤
+5. 不说教
+`
+        },
+        {
+          role: "user",
+          content
+        }
+      ],
+
+      temperature: 0.9,
+    });
+
+    const aiReply =
+      completion.choices[0].message.content ||
+      "别急呀，也许答案会慢慢浮现。";
+
+    const posts = readWall();
+
+    const newPost = {
+      id: crypto.randomUUID(),
+      content,
+      reply: aiReply,
+      likes: 0,
+      createdAt: Date.now(),
+    };
+
+    posts.unshift(newPost);
+
+    saveWall(posts);
+
+    res.json(newPost);
+
+  } catch (err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      error: "post failed"
+    });
   }
-  const posts = readWall();
-  const newPost = {
-    id: crypto.randomUUID(),
-    content,
-    mode,
-    likes: 0,
-    createdAt: Date.now(),
-  };
-  posts.unshift(newPost);
-  saveWall(posts);
-  res.json(newPost);
 });
 
+// =========================
+// 点赞
+// =========================
 app.post("/api/wall/posts/:id/like", (req, res) => {
+
   const posts = readWall();
-  const target = posts.find(p => p.id === req.params.id);
+
+  const target = posts.find(
+    p => p.id === req.params.id
+  );
+
   if (!target) {
-    return res.status(404).json({ error: "post not found" });
+    return res.status(404).json({
+      error: "post not found"
+    });
   }
+
   target.likes++;
+
   saveWall(posts);
+
   res.json(target);
 });
 
-// 注意：不再提供静态文件服务（express.static），
-// 因为 Vercel 会通过 vercel.json 中的配置托管 public 目录。
-
-// 导出 Express app 供 Vercel 作为 Serverless Function 使用
+// =========================
+// 导出
+// =========================
 export default app;
