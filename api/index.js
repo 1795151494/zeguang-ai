@@ -88,16 +88,25 @@ app.post("/api/decision", async (req, res) => {
     });
 
     const text = response.choices?.[0]?.message?.content || "{}";
-    let result;
-    try {
-      result = JSON.parse(text);
-    } catch {
-      result = {
-        title: "我觉得你已经有答案了 ✨",
-        text: text,
-        tags: ["温柔建议"]
-      };
-    }
+    let text = response.choices?.[0]?.message?.content || "{}";
+
+// 清理 markdown json
+text = text
+  .replace(/```json/g, "")
+  .replace(/```/g, "")
+  .trim();
+
+let result;
+
+try {
+  result = JSON.parse(text);
+} catch {
+  result = {
+    title: "我觉得你已经有答案了 ✨",
+    text: text,
+    tags: ["温柔建议"]
+  };
+}
     res.json(result);
   } catch (err) {
     console.error("AI 接口错误:", err);
