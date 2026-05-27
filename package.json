@@ -1,5 +1,15 @@
 {
+  "name": "zeguang-ai",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node api/index.js"
+  },
   "dependencies": {
-    "express-rate-limit": "^8.5.2"
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.5.2",
+    "openai": "^5.12.2"
   }
 }
