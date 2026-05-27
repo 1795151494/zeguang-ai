@@ -87,7 +87,7 @@ app.post("/api/decision", async (req, res) => {
       temperature: 0.8
     });
 
-    const text = response.choices?.[0]?.message?.content || "{}";
+    const aiText = response.choices?.[0]?.message?.content || "{}";
     let text = response.choices?.[0]?.message?.content || "{}";
 
 // 清理 markdown json
@@ -99,11 +99,11 @@ text = text
 let result;
 
 try {
-  result = JSON.parse(text);
+  result = JSON.parse(aiText);
 } catch {
   result = {
     title: "我觉得你已经有答案了 ✨",
-    text: text,
+    text: aiText,
     tags: ["温柔建议"]
   };
 }
