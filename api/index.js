@@ -26,6 +26,8 @@ const limiter = rateLimit({
 
 app.use("/api/decision", limiter);
 
+app.use("/api/wall", limiter);
+
 // =========================
 // OpenAI / 通义千问
 // =========================
@@ -38,7 +40,31 @@ const client = new OpenAI({
 // =========================
 // 临时内存数据库
 // =========================
-let wallPosts = [];
+let wallPosts = [
+  {
+    id: "1",
+    content: "我该不该辞职",
+    reply: "别熬了，先离开再说。",
+    likes: 56,
+    createdAt: Date.now()
+  },
+
+  {
+    id: "2",
+    content: "今天该不该去见他",
+    reply: "去吧，你已经想见很久了。",
+    likes: 88,
+    createdAt: Date.now()
+  },
+
+  {
+    id: "3",
+    content: "我是不是该早点睡",
+    reply: "先睡觉，明天会轻一点。",
+    likes: 102,
+    createdAt: Date.now()
+  }
+];
 
 // =========================
 // 工具函数
@@ -50,6 +76,12 @@ function readWall() {
 function saveWall(posts) {
   wallPosts = posts;
 }
+
+app.get("/api/health", (req, res) => {
+  res.json({
+    ok: true
+  });
+});
 
 // =========================
 // AI 决策接口
@@ -64,31 +96,27 @@ app.post("/api/decision", async (req, res) => {
       });
     }
 
-    let modePrompt = "";
-
-    if (mode === "quick") {
-      modePrompt = `
+   const prompts = {
+  quick: `
 你要快速帮用户做决定。
 直接给答案。
 不要分析太多。
 语气轻松温柔。
-`;
-    }
+`,
 
-    if (mode === "deep") {
-      modePrompt = `
+  deep: `
 你要更认真分析。
 帮助用户权衡利弊。
 但仍然保持温柔陪伴感。
-`;
-    }
+`,
 
-    if (mode === "creative") {
-      modePrompt = `
+  creative: `
 你要更有创意。
-回答可以有灵感感、浪漫感、脑洞感。
-`;
-    }
+回答可以有灵感感、浪漫感、脑洞感、尽量给出让人很惊讶的答案
+`
+};
+
+const modePrompt = prompts[mode] || "";
 
     const completion = await client.chat.completions.create({
       model: "qwen-turbo",
@@ -210,6 +238,12 @@ app.post("/api/wall/posts", async (req, res) => {
         error: "content required"
       });
     }
+
+    if (content.length > 200) {
+  return res.status(400).json({
+    error: "内容太长啦"
+  });
+}
 
     // AI 回复
     const completion = await client.chat.completions.create({
