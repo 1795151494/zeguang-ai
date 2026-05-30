@@ -11,7 +11,8 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.2",
-    "openai": "^5.23.2"
+    "openai": "^5.23.2",
+    "pg": "^8.21.0"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.1.8",
