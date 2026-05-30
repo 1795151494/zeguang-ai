@@ -4,7 +4,17 @@ import dotenv from "dotenv";
 import OpenAI from "openai";
 import crypto from "crypto";
 import rateLimit from "express-rate-limit";
-import { pool } from "../lib/db.js";
+import pg from 'pg';
+const { Pool } = pg;
+
+const pool = new Pool({
+  host: process.env.PGHOST,
+  port: parseInt(process.env.PGPORT || '5432'),
+  user: process.env.PGUSER,
+  password: process.env.PGPASSWORD,
+  database: process.env.PGDATABASE,
+  ssl: { rejectUnauthorized: false },
+});
 
 dotenv.config();
 
